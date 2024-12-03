@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elasticsearch Search</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        async function fetchData() {
+            const loadingMessage = document.getElementById('loading');
+            loadingMessage.style.display = 'block'; // Show loading message
+
+            try {
+                const response = await fetch('/data');
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('error').innerText = data.error;
+                    return;
+                }
+
+                loadingMessage.style.display = 'none'; // Hide loading message
+                const table = document.getElementById('data-table');
+                const headerRow = document.getElementById('header-row');
+
+                // Dynamically generate table headers based on the first row
+                const firstRow = data[0];
+                if (firstRow) generateHeaders(firstRow, headerRow);
+
+                // Populate table rows
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    populateRow(row, tr);
+                    table.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('error').innerText = 'Failed to fetch data.';
+            }
+        }
+
+        async function searchData() {
+            const query = document.getElementById('search-input').value;
+            const loadingMessage = document.getElementById('loading');
+            loadingMessage.style.display = 'block'; // Show loading message
+
+            try {
+                const response = await fetch(`/search?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('error').innerText = data.error;
+                    return;
+                }
+
+                loadingMessage.style.display = 'none'; // Hide loading message
+                const table = document.getElementById('data-table');
+                const headerRow = document.getElementById('header-row');
+
+                // Clear existing table
+                table.innerHTML = '';
+                headerRow.innerHTML = '';
+
+                // Dynamically generate table headers based on the first row
+                const firstRow = data[0];
+                if (firstRow) generateHeaders(firstRow, headerRow);
+
+                // Populate table rows
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    populateRow(row, tr);
+                    table.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error fetching search results:', error);
+                document.getElementById('error').innerText = 'Failed to fetch search results.';
+            }
+        }
+
+        // Recursively generate headers for all keys
+        function generateHeaders(row, headerRow, prefix = '') {
+            for (const key in row) {
+                if (typeof row[key] === 'object' && row[key] !== null) {
+                    generateHeaders(row[key], headerRow, `${prefix}${key}.`);
+                } else {
+                    const th = document.createElement('th');
+                    th.innerText = `${prefix}${key}`;
+                    headerRow.appendChild(th);
+                }
+            }
+        }
+
+        // Recursively populate rows for all keys
+        function populateRow(row, tr, prefix = '') {
+            for (const key in row) {
+                if (typeof row[key] === 'object' && row[key] !== null) {
+                    populateRow(row[key], tr, `${prefix}${key}.`);
+                } else {
+                    const td = document.createElement('td');
+                    td.innerText = row[key] || 'N/A'; // Display 'N/A' for missing values
+                    tr.appendChild(td);
+                }
+            }
+        }
+
+        window.onload = fetchData;
+    </script>
+</head>
+<body>
+    <h1>Elasticsearch Search</h1>
+    <p id="error" style="color: red;"></p>
+    <p id="loading" style="text-align: center; font-size: 18px;">Loading data...</p>
+
+    <!-- Search Form -->
+    <div>
+        <input type="text" id="search-input" placeholder="Enter your search query" style="width: 300px;">
+        <button onclick="searchData()">Search</button>
+    </div>
+
+    <!-- Data Table -->
+    <table border="1">
+        <thead>
+            <tr id="header-row">
+                <!-- Dynamic headers will be inserted here -->
+            </tr>
+        </thead>
+        <tbody id="data-table">
+            <!-- Data will be dynamically inserted here -->
+        </tbody>
+    </table>
+</body>
+</html>
